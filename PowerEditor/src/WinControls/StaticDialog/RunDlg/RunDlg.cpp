@@ -168,6 +168,11 @@ void expandNppEnvironmentStrs(const TCHAR *strSrc, TCHAR *stringDest, size_t str
 
 HINSTANCE Command::run(HWND hWnd)
 {
+	return run(hWnd, TEXT("."));
+}
+
+HINSTANCE Command::run(HWND hWnd, const TCHAR* cwd)
+{
 	const int argsIntermediateLen = MAX_PATH*2;
 	const int args2ExecLen = CURRENTWORD_MAXLENGTH+MAX_PATH*2;
 
@@ -181,20 +186,23 @@ HINSTANCE Command::run(HWND hWnd)
 	extractArgs(cmdPure, args, _cmdLine.c_str());
 	int nbTchar = ::ExpandEnvironmentStrings(cmdPure, cmdIntermediate, MAX_PATH);
 	if (!nbTchar)
-		lstrcpy(cmdIntermediate, cmdPure);
+		wcscpy_s(cmdIntermediate, cmdPure);
 	else if (nbTchar >= MAX_PATH)
 		cmdIntermediate[MAX_PATH-1] = '\0';
 
 	nbTchar = ::ExpandEnvironmentStrings(args, argsIntermediate, argsIntermediateLen);
 	if (!nbTchar)
-		lstrcpy(argsIntermediate, args);
+		wcscpy_s(argsIntermediate, args);
 	else if (nbTchar >= argsIntermediateLen)
 		argsIntermediate[argsIntermediateLen-1] = '\0';
 
 	expandNppEnvironmentStrs(cmdIntermediate, cmd2Exec, MAX_PATH, hWnd);
 	expandNppEnvironmentStrs(argsIntermediate, args2Exec, args2ExecLen, hWnd);
 
-	HINSTANCE res = ::ShellExecute(hWnd, TEXT("open"), cmd2Exec, args2Exec, TEXT("."), SW_SHOW);
+	TCHAR cwd2Exec[MAX_PATH];
+	expandNppEnvironmentStrs(cwd, cwd2Exec, MAX_PATH, hWnd);
+	
+	HINSTANCE res = ::ShellExecute(hWnd, TEXT("open"), cmd2Exec, args2Exec, cwd2Exec, SW_SHOW);
 
 	// As per MSDN (https://msdn.microsoft.com/en-us/library/windows/desktop/bb762153(v=vs.85).aspx)
 	// If the function succeeds, it returns a value greater than 32.
